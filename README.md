@@ -22,47 +22,43 @@ A procedural dungeon generator powered by Quantum Computing. Instead of traditio
 
 ## 🏗️ Architecture
 
-┌─────────────────────┐         ┌──────────────────────┐
-│   DungeonGrid       │ ──────▶ │   QuantumSolver      │
-│   (constraints)     │         │   (QAOA circuit)     │
-└─────────────────────┘         └──────────┬───────────┘
-│
-┌─────────────────┼──────────────────┐
-▼                 ▼                  ▼
-QUBO Problem      StatevectorSampler    COBYLA
-(cost function)      (quantum sim)      (optimizer)
-│                 │                  │
-└─────────────────┼──────────────────┘
-▼
-Room Layout
-(binary grid)
-│
-┌─────────────────┼──────────────────┐
-▼                 ▼                  ▼
-Connectivity       Room Types          Visualizer
-Validation        Assignment          (Matplotlib)
+![Architecture](https://img.shields.io/badge/Flow-Dungeon→QUBO→QAOA→Layout→Visualizer-blue?style=for-the-badge)
+
+| Component | Role | Output |
+|-----------|------|--------|
+| 🎮 **DungeonGrid** | Defines grid size, target rooms, neighbor relationships | Constraint parameters |
+| 🧮 **QUBO Builder** | Encodes room count penalty, connectivity reward, entrance/exit preference | Cost function |
+| ⚛️ **QAOA Circuit** | Quantum superposition + cost/mixer layers | Parameterized circuit |
+| 🔧 **COBYLA Optimizer** | Classical tuning of quantum parameters γ, β | Optimal angles |
+| 📏 **Measurement** | Collapses quantum state to classical bitstring | Binary room layout |
+| ✅ **Connectivity Check** | Validates all rooms are reachable via flood-fill | Pass/retry |
+| 🏰 **Room Assigner** | Places Entrance, Exit, Boss, Treasure, Enemy | Typed layout |
+| 🎨 **Visualizer** | Renders ASCII and Matplotlib graphics | PNG output |
 
 ---
 
 ## 🗂️ Project Structure
 
-quantum-dungeon-generator/
-├── src/
-│   ├── dungeon.py          # Grid data structure, connectivity check, room type assignment
-│   ├── quantum_core.py     # QAOA solver — QUBO encoding, circuit construction, optimization
-│   ├── visualizer.py       # ASCII and Matplotlib dungeon rendering
-│   └── init.py         # Package exports
-├── output/                  # Generated dungeon images
-├── main.py                  # Entry point — portfolio showcase with formatted output
-├── test_solver.py           # Development testing
-├── requirements.txt         # Python dependencies
+| File | Description |
+|------|-------------|
+| 📁 `src/` | |
+| ├── `dungeon.py` | DungeonGrid class, RoomType enum, connectivity check, room assignment |
+| ├── `quantum_core.py` | QuantumDungeonSolver, QUBO builder, QAOA runner |
+| ├── `visualizer.py` | print_dungeon(), plot_dungeon(), color schemes |
+| └── `__init__.py` | Package exports |
+| 📁 `output/` | Generated dungeon images (.png) |
+| `main.py` | Entry point with formatted console output |
+| `test_solver.py` | Quick testing and debugging |
+| `requirements.txt` | Qiskit, NumPy, Matplotlib |
+| `README.md` | Documentation |
+| `.gitignore` | Excludes venv, __pycache__, output images |
 
 ---
 
 ## 🛠️ Tech Stack
 
 | Layer | Technology |
-| --- | --- |
+|-------|------------|
 | Quantum Computing | Qiskit, Qiskit-Aer, Qiskit-Algorithms, Qiskit-Optimization |
 | Optimization | QAOA (Quantum Approximate Optimization Algorithm), COBYLA |
 | Data | NumPy |
@@ -85,15 +81,16 @@ quantum-dungeon-generator/
 
 ## ⚙️ How QAOA Works
 
-|0⟩ ─[H]─[U(γ,C)]─[U(β,B)]─[U(γ,C)]─[U(β,B)]─[Measure]
-|0⟩ ─[H]─[U(γ,C)]─[U(β,B)]─[U(γ,C)]─[U(β,B)]─[Measure]
-...      Cost      Mixer     Cost      Mixer
+| Step | Operation | Description |
+|------|-----------|-------------|
+| 1 | **Hadamard (H)** | Creates superposition of all 2^n possible dungeon layouts |
+| 2 | **Cost Layer U(γ,C)** | Applies dungeon constraints as phase rotations |
+| 3 | **Mixer Layer U(β,B)** | Enables exploration of the solution space |
+| 4 | **Repeat** | Multiple cost-mixer layers improve solution quality |
+| 5 | **COBYLA Optimizer** | Classical optimizer tunes γ, β parameters to minimize cost |
+| 6 | **Measurement** | Collapses superposition to optimal dungeon layout |
 
-1. **Hadamard (H)** — Creates superposition of all 2^n possible dungeon layouts
-2. **Cost Layer U(γ,C)** — Applies dungeon constraints as phase rotations
-3. **Mixer Layer U(β,B)** — Enables exploration of the solution space
-4. **Classical Optimizer** — Tunes γ, β parameters to minimize cost
-5. **Measurement** — Collapses superposition to optimal layout
+**Circuit:** `|0⟩ → [H] → [Cost] → [Mixer] → [Cost] → [Mixer] → [Measure]`
 
 ---
 
@@ -116,17 +113,13 @@ python main.py
 
 ---
 
-## 📸 Example Output
+**Generated Dungeon:**
 
-╔══════════════════════════════════════════════════════════╗
-║              QUANTUM DUNGEON GENERATOR                    ║
-║         QAOA-Powered Procedural Generation                ║
-╚══════════════════════════════════════════════════════════╝
-Grid Size:     4x4
-Target Rooms:  9
-QAOA Depth:    1
-────────────────────────────────────────
-Running QAOA optimization...
-────────────────────────────────────────
-Attempt  1: Energy=   -434 | Rooms=9 | ✓ Connected
-✓ SUCCESS after 1 attempt(s)
+| | | | | Legend |
+|:-:|:-:|:-:|:-:|:--|
+| E | ■ | ■ | · | **E** = Entrance |
+| ■ | ■ | · | · | **■** = Room |
+| ! | ■ | $ | · | **!** = Enemy |
+| · | B | X | · | **$** = Treasure |
+| | | | | **B** = Boss |
+| | | | | **X** = Exit |
